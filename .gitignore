@@ -1,0 +1,64 @@
+# Build outputs
+bin/
+obj/
+out/
+Debug/
+Release/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vscode/
+*.vs/
+
+# Logs
+*.log
+
+# Dependency directories
+node_modules/
+packages/
+wwwroot/lib/
+
+# Environment and secrets
+.env
+.env.*
+secrets.json
+appsettings.Development.json
+
+# System files
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# Rider & Visual Studio configs
+.idea/
+*.iml
+
+# Coverage & test results
+TestResult*/
+*.coverage
+*.coveragexml
+
+# Database files
+*.mdf
+*.ldf
+*.sqlite
+
+# Publish folders
+publish/
+dist/
+build/
+
+# Entity Framework migrations
+Migrations/
+migrations/
+
+# Temporary files
+*.tmp
+*.temp

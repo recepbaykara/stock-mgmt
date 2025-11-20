@@ -88,4 +88,42 @@ app.MapDelete("/products/{id}", async (int id, AppDbContext db) =>
     return Results.Ok();
 });
 
+// Orders
+app.MapGet("/orders", async (AppDbContext db) => await db.Orders.ToListAsync());
+app.MapGet("/orders/{id}", async (int id, AppDbContext db) =>  await db.Orders.FindAsync());
+app.MapPost("/orders", async (Order order, AppDbContext db) =>
+{
+    var product = await db.Products.FindAsync(order.ProductId);
+    if (product is null) return Results.NotFound("Product not found");
+    if (product.Stock < order.Quantity) return Results.Conflict("Not enough stock");
+    product.Stock -= order.Quantity;
+    db.Products.Update(product);
+    db.Orders.Add(order);
+    await db.SaveChangesAsync();
+    return Results.Created($"/orders/{order.Id}", order);
+});
+app.MapPut("/orders/{id}", async (int id, Order inputOrder, AppDbContext db) =>
+{
+    var order = await db.Orders.FindAsync(id);
+    if (order is null) return Results.NotFound();
+    order.Name = inputOrder.Name;
+    order.Description = inputOrder.Description;
+    order.Address = inputOrder.Address;
+    order.PaymentMethod = inputOrder.PaymentMethod;
+    order.Quantity = inputOrder.Quantity;
+    order.UserId = inputOrder.UserId;
+    order.UserId = inputOrder.UserId;
+    
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+app.MapDelete("/orders/{id}", async (int id, AppDbContext db) =>
+{
+    var order = await db.Orders.FindAsync(id);
+    if (order is null) return Results.NotFound();
+    db.Orders.Remove(order);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.Run();

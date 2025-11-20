@@ -14,4 +14,5 @@ public class Product
     public required float Price { get; set; }
     
     public required int Stock { get; set; }
+    
 }

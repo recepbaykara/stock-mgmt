@@ -37,7 +37,7 @@ app.MapPost("/users", async (User user, AppDbContext db) =>
 app.MapPut("/users/{id}", async (int id, User inputUser, AppDbContext db) =>
 {
     var user = await db.Users.FindAsync(id);
-    if (user is null) return Results.NotFound();
+    if (user is null) return Results.NotFound("User not found");
 
     user.Name = inputUser.Name;
     user.LastName = inputUser.LastName;
@@ -52,7 +52,7 @@ app.MapPut("/users/{id}", async (int id, User inputUser, AppDbContext db) =>
 app.MapDelete("/users/{id}", async (int id, AppDbContext db) =>
 {
     var user = await db.Users.FindAsync(id);
-    if (user is null) return Results.NotFound();
+    if (user is null) return Results.NotFound("User not found");
 
     db.Users.Remove(user);
     await db.SaveChangesAsync();
@@ -71,7 +71,7 @@ app.MapPost("/products", async (Product product, AppDbContext db) =>
 app.MapPut("/products/{id}", async (int id, Product inputProduct, AppDbContext db) =>
 {
     var product = await db.Products.FindAsync(id);
-    if (product is null) return Results.NotFound();
+    if (product is null) return Results.NotFound("Product not found");
     product.Name = inputProduct.Name;
     product.Description = inputProduct.Description;
     product.Price = inputProduct.Price;
@@ -82,7 +82,7 @@ app.MapPut("/products/{id}", async (int id, Product inputProduct, AppDbContext d
 app.MapDelete("/products/{id}", async (int id, AppDbContext db) =>
 {
     var product = await db.Products.FindAsync(id);
-    if (product is null) return Results.NotFound();
+    if (product is null) return Results.NotFound("Product not found");
     db.Products.Remove(product);
     await db.SaveChangesAsync();
     return Results.Ok();
@@ -105,14 +105,15 @@ app.MapPost("/orders", async (Order order, AppDbContext db) =>
 app.MapPut("/orders/{id}", async (int id, Order inputOrder, AppDbContext db) =>
 {
     var order = await db.Orders.FindAsync(id);
-    if (order is null) return Results.NotFound();
+    if (order is null) return Results.NotFound("Order not found");
     order.Name = inputOrder.Name;
     order.Description = inputOrder.Description;
     order.Address = inputOrder.Address;
     order.PaymentMethod = inputOrder.PaymentMethod;
     order.Quantity = inputOrder.Quantity;
+    order.OrderDate = inputOrder.OrderDate;
     order.UserId = inputOrder.UserId;
-    order.UserId = inputOrder.UserId;
+    order.ProductId = inputOrder.ProductId;
     
     await db.SaveChangesAsync();
     return Results.Ok();

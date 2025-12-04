@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using StockMgmt.Common;
+using StockMgmt.DTOs;
 using StockMgmt.Models;
 using StockMgmt.Services;
 
@@ -37,6 +38,29 @@ public class OrderController : Controller
         {
             Success = true,
             Message = "Order found",
+            Data = order
+        };
+    }
+
+    [HttpPost]
+    public async Task<ApiResponse<Order>> Create([FromBody] OrderCreate orderCreate)
+    {
+        var order = await _orderService.CreateAsync(orderCreate);
+
+        if (order is null)
+        {
+            return new ApiResponse<Order>()
+            {
+                Success = false,
+                Message = "Order could not be created",
+                Data = null
+            };
+        }
+
+        return new ApiResponse<Order>()
+        {
+            Success = true,
+            Message = "Order created",
             Data = order
         };
     }

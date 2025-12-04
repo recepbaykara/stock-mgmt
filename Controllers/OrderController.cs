@@ -106,7 +106,7 @@ public class OrderController : Controller
     }
     
     [HttpPatch("{id}")]
-    public async Task<ApiResponse<Order>> Patch(int id, [FromBody] OrderPatch patchDto)
+    public async Task<ApiResponse<Order>> Patch([FromRoute] int id, [FromBody] OrderPatch patchDto)
     {
         try
         {
@@ -130,7 +130,7 @@ public class OrderController : Controller
     }
     
     [HttpDelete("{id}")]
-    public async Task<ApiResponse<bool>> Delete(int id)
+    public async Task<ApiResponse<bool>> Delete([FromRoute] int id)
     {
         try
         {

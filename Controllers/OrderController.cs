@@ -31,39 +31,126 @@ public class OrderController : Controller
     }
 
     [HttpGet("{id}")]
-    public async Task<ApiResponse<Order>> Get(int id)
+    public async Task<ApiResponse<Order>> Get([FromRoute] int id)
     {
-        var order = await _orderService.GetByIdAsync(id);
-        return new ApiResponse<Order>()
+        try
         {
-            Success = true,
-            Message = "Order found",
-            Data = order
-        };
+            var order = await _orderService.GetByIdAsync(id);
+            return new ApiResponse<Order>()
+            {
+                Success = true,
+                Message = "Order found",
+                Data = order
+            };
+        }
+        catch (Exception e)
+        {
+            return new ApiResponse<Order>()
+            {
+                Success = false,
+                Message = e.Message,
+                Data = null
+            };
+        }
     }
 
     [HttpPost]
     public async Task<ApiResponse<Order>> Create([FromBody] OrderCreate orderCreate)
     {
-        var order = await _orderService.CreateAsync(orderCreate);
+        try
+        {
+            var order = await _orderService.CreateAsync(orderCreate);
 
-        if (order is null)
+            return new ApiResponse<Order>()
+            {
+                Success = true,
+                Message = "Order created",
+                Data = order
+            };
+        }
+        catch (Exception e)
         {
             return new ApiResponse<Order>()
             {
                 Success = false,
-                Message = "Order could not be created",
+                Message = e.Message,
                 Data = null
             };
         }
+    }
 
-        return new ApiResponse<Order>()
+    [HttpPut("{id}")]
+    public async Task<ApiResponse<Order>> Update([FromRoute] int id, [FromBody] OrderUpdate orderUpdate)
+    {
+        try
         {
-            Success = true,
-            Message = "Order created",
-            Data = order
-        };
+            var order = await _orderService.UpdateAsync(id, orderUpdate);
+
+            return new ApiResponse<Order>()
+            {
+                Success = true,
+                Message = "Order updated",
+                Data = order
+            };
+
+        }
+        catch (Exception e)
+        {
+            return new ApiResponse<Order>()
+            {
+                Success = false,
+                Message = e.Message,
+                Data = null
+            };
+        }
     }
     
+    [HttpPatch("{id}")]
+    public async Task<ApiResponse<Order>> Patch(int id, [FromBody] OrderPatch patchDto)
+    {
+        try
+        {
+            var order = await _orderService.PatchAsync(id, patchDto);
+            return new ApiResponse<Order>()
+            {
+                Success = true,
+                Message = "Order updated (patch)",
+                Data = order
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<Order>()
+            {
+                Success = false,
+                Message = ex.Message,
+                Data = null
+            };
+        }
+    }
     
+    [HttpDelete("{id}")]
+    public async Task<ApiResponse<bool>> Delete(int id)
+    {
+        try
+        {
+            var result = await _orderService.DeleteAsync(id);
+
+            return new ApiResponse<bool>()
+            {
+                Success = true,
+                Message = "Order deleted",
+                Data = result
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<bool>()
+            {
+                Success = false,
+                Message = ex.Message,
+                Data = false
+            };
+        }
+    }
 }

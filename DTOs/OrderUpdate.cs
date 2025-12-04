@@ -1,16 +1,17 @@
+using System.Runtime.CompilerServices;
 using StockMgmt.Enums;
 
 namespace StockMgmt.DTOs;
 
 public class OrderUpdate
 {
-    public string Name { get; set; }
+    public required string Name { get; set; }
     
-    public string Description { get; set; }
+    public required string Description { get; set; }
     
-    public string Address { get; set; }
+    public required string Address { get; set; }
     
-    public PaymentMethod PaymentMethod { get; set; }
+    public required PaymentMethod PaymentMethod { get; set; }
     
-    public int Quantity { get; set; }
+    public required int Quantity { get; set; }
 }

@@ -1,6 +1,6 @@
 namespace StockMgmt.Common;
 
-public class ApiResponse<T> where T : class
+public class ApiResponse<T>
 {
     public bool Success { get; set; }
     

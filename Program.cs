@@ -5,24 +5,40 @@ using StockMgmt.Context;
 using StockMgmt.DTOs;
 using StockMgmt.Interfaces;
 using StockMgmt.Services;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+// Serilog configuration
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+        .Build())
+    .CreateLogger();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+try
+{
+    Log.Information("Starting StockMgmt application...");
 
-builder.Services.AddOpenApi();
-builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
-    });
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-var app = builder.Build();
+    // Serilog'u Host'a ekle
+    builder.Host.UseSerilog();
+
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+    builder.Services.AddOpenApi();
+    builder.Services.AddScoped<IOrderService, OrderService>();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
+        });
+
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+    var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
@@ -156,4 +172,19 @@ app.MapDelete("/orders/{id}", async (int id, AppDbContext db) =>
     return Results.Ok();
 });
 
-app.Run();
+    // Add HTTP Request Logging middleware
+    app.UseSerilogRequestLogging();
+
+    Log.Information("Application configured successfully");
+    
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application failed to start");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}

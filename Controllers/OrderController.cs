@@ -11,16 +11,20 @@ namespace StockMgmt.Controllers;
 public class OrderController : Controller
 {
     private readonly IOrderService _orderService;
+    private readonly ILogger<OrderController> _logger;
 
-    public OrderController(IOrderService orderService)
+    public OrderController(IOrderService orderService, ILogger<OrderController> logger)
     {
         _orderService = orderService;
+        _logger = logger;
     }
     
     [HttpGet]
     public async Task<ApiResponse<List<Order>>> GetAll()
     {
+        _logger.LogInformation("Fetching all orders");
         var orders = await _orderService.GetAllAsync();
+        _logger.LogInformation("Found {Count} orders", orders.Count);
 
         return new ApiResponse<List<Order>>()
         {
@@ -35,7 +39,9 @@ public class OrderController : Controller
     {
         try
         {
+            _logger.LogInformation("Searching for order with ID: {OrderId}", id);
             var order = await _orderService.GetByIdAsync(id);
+            _logger.LogInformation("Order found with ID: {OrderId}", id);
             return new ApiResponse<Order>()
             {
                 Success = true,
@@ -45,6 +51,7 @@ public class OrderController : Controller
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Order not found with ID: {OrderId}", id);
             return new ApiResponse<Order>()
             {
                 Success = false,
@@ -59,7 +66,10 @@ public class OrderController : Controller
     {
         try
         {
+            _logger.LogInformation("Creating new order: User={UserId}, Product={ProductId}, Quantity={Quantity}", 
+                orderCreate.UserId, orderCreate.ProductId, orderCreate.Quantity);
             var order = await _orderService.CreateAsync(orderCreate);
+            _logger.LogInformation("Order created successfully: OrderId={OrderId}", order.Id);
 
             return new ApiResponse<Order>()
             {
@@ -70,6 +80,8 @@ public class OrderController : Controller
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Error creating order: User={UserId}, Product={ProductId}", 
+                orderCreate.UserId, orderCreate.ProductId);
             return new ApiResponse<Order>()
             {
                 Success = false,
@@ -84,7 +96,9 @@ public class OrderController : Controller
     {
         try
         {
+            _logger.LogInformation("Updating order: OrderId={OrderId}", id);
             var order = await _orderService.UpdateAsync(id, orderUpdate);
+            _logger.LogInformation("Order updated successfully: OrderId={OrderId}", id);
 
             return new ApiResponse<Order>()
             {
@@ -96,6 +110,7 @@ public class OrderController : Controller
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Error updating order: OrderId={OrderId}", id);
             return new ApiResponse<Order>()
             {
                 Success = false,
@@ -110,7 +125,9 @@ public class OrderController : Controller
     {
         try
         {
+            _logger.LogInformation("Patching order: OrderId={OrderId}", id);
             var order = await _orderService.PatchAsync(id, patchDto);
+            _logger.LogInformation("Order patched successfully: OrderId={OrderId}", id);
             return new ApiResponse<Order>()
             {
                 Success = true,
@@ -120,6 +137,7 @@ public class OrderController : Controller
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error patching order: OrderId={OrderId}", id);
             return new ApiResponse<Order>()
             {
                 Success = false,
@@ -134,7 +152,9 @@ public class OrderController : Controller
     {
         try
         {
+            _logger.LogInformation("Deleting order: OrderId={OrderId}", id);
             var result = await _orderService.DeleteAsync(id);
+            _logger.LogInformation("Order deleted successfully: OrderId={OrderId}", id);
 
             return new ApiResponse<bool>()
             {
@@ -145,6 +165,7 @@ public class OrderController : Controller
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error deleting order: OrderId={OrderId}", id);
             return new ApiResponse<bool>()
             {
                 Success = false,

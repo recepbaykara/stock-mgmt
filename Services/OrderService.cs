@@ -7,10 +7,18 @@ using StockMgmt.Models;
 
 namespace StockMgmt.Services;
 
-public class OrderService(AppDbContext context, ILogger<OrderService> logger) : IOrderService
+public class OrderService : IOrderService
 {
-    private readonly AppDbContext _context = context;
-    private readonly ILogger<OrderService> _logger = logger;
+    private readonly AppDbContext _context;
+    private readonly ILogger<OrderService> _logger;
+    private readonly IEmailService _emailService;
+
+    public OrderService(AppDbContext context, ILogger<OrderService> logger, IEmailService emailService)
+    {
+        _context = context;
+        _logger = logger;
+        _emailService = emailService;
+    }
 
     public async Task<List<Order>> GetAllAsync()
     {
@@ -87,6 +95,17 @@ public class OrderService(AppDbContext context, ILogger<OrderService> logger) : 
 
         _logger.LogInformation("Order created: OrderId={OrderId}, User={UserId}, Product={ProductId}, Quantity={Quantity}",
             order.Id, order.UserId, order.ProductId, order.Quantity);
+
+        try
+        {
+            await _emailService.SendOrderConfirmationEmailAsync(order, user, product);
+            _logger.LogInformation("Order confirmation email sent: OrderId={OrderId}, Email={Email}",
+                order.Id, user.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send confirmation email: OrderId={OrderId}", order.Id);
+        }
 
         return order;
     }
@@ -279,6 +298,17 @@ public class OrderService(AppDbContext context, ILogger<OrderService> logger) : 
 
         _logger.LogInformation("Order deleted: OrderId={OrderId}, ProductId={ProductId}, Quantity={Quantity}",
             id, order.ProductId, order.Quantity);
+
+        try
+        {
+            await _emailService.SendOrderCancellationEmailAsync(order, user, product);
+            _logger.LogInformation("Order cancellation email sent: OrderId={OrderId}, Email={Email}",
+                order.Id, user.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send cancellation email: OrderId={OrderId}", order.Id);
+        }
 
         return true;
     }

@@ -9,7 +9,7 @@ public class AuditLog
 
     public string TableName { get; set; }
 
-    public string Action { get; set; } // INSERT, UPDATE, DELETE
+    public string Action { get; set; }
 
     public string EntityId { get; set; }
 

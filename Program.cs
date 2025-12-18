@@ -28,8 +28,11 @@ try
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+    builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
     builder.Services.AddScoped<IOrderService, OrderService>();
     builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+    builder.Services.AddScoped<IEmailService, EmailService>();
 
     builder.Services.AddControllers()
         .AddJsonOptions(options =>

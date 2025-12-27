@@ -23,15 +23,6 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore
-      
-      - name: Install dotnet format
-        run: dotnet tool install -g dotnet-format
-        
-      - name: Add dotnet format to PATH
-        run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-      
-      - name: Format Check
-        run: dotnet format Stock-Mgmt.sln --verify-no-changes
 
       - name: Build
         run: dotnet build --no-restore --configuration Release

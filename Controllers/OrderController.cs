@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using StockMgmt.Common;
 using StockMgmt.DTOs;
 using StockMgmt.Interfaces;
 using StockMgmt.Models;
+using Serilog.Context;
 
 namespace StockMgmt.Controllers;
 
@@ -51,7 +53,10 @@ public class OrderController : Controller
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Order not found with ID: {OrderId}", id);
+            using (LogContext.PushProperty("StatusCode", StatusCodes.Status404NotFound))
+            {
+                _logger.LogError(e, "Order not found with ID: {OrderId}", id);
+            }
             return NotFound(new ApiResponse<Order>()
             {
                 Success = false,
@@ -80,8 +85,11 @@ public class OrderController : Controller
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error creating order: User={UserId}, Product={ProductId}",
-                orderCreate.UserId, orderCreate.ProductId);
+            using (LogContext.PushProperty("StatusCode", StatusCodes.Status400BadRequest))
+            {
+                _logger.LogError(e, "Error creating order: User={UserId}, Product={ProductId}",
+                    orderCreate.UserId, orderCreate.ProductId);
+            }
             return BadRequest(new ApiResponse<Order>()
             {
                 Success = false,
@@ -110,7 +118,10 @@ public class OrderController : Controller
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error updating order: OrderId={OrderId}", id);
+            using (LogContext.PushProperty("StatusCode", StatusCodes.Status400BadRequest))
+            {
+                _logger.LogError(e, "Error updating order: OrderId={OrderId}", id);
+            }
             return BadRequest(new ApiResponse<Order>()
             {
                 Success = false,
@@ -137,7 +148,10 @@ public class OrderController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error patching order: OrderId={OrderId}", id);
+            using (LogContext.PushProperty("StatusCode", StatusCodes.Status400BadRequest))
+            {
+                _logger.LogError(ex, "Error patching order: OrderId={OrderId}", id);
+            }
             return BadRequest(new ApiResponse<Order>()
             {
                 Success = false,
@@ -165,7 +179,10 @@ public class OrderController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting order: OrderId={OrderId}", id);
+            using (LogContext.PushProperty("StatusCode", StatusCodes.Status404NotFound))
+            {
+                _logger.LogError(ex, "Error deleting order: OrderId={OrderId}", id);
+            }
             return NotFound(new ApiResponse<bool>()
             {
                 Success = false,

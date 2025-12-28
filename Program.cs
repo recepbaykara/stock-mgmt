@@ -6,6 +6,7 @@ using StockMgmt.DTOs;
 using StockMgmt.Interfaces;
 using StockMgmt.Services;
 using Serilog;
+using Serilog.Context;
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(new ConfigurationBuilder()
@@ -15,6 +16,9 @@ Log.Logger = new LoggerConfiguration()
             optional: true
         )
         .Build())
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "StockMgmt")
+    .Enrich.WithProperty("Environment", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production")
     .CreateLogger();
 
 try
@@ -23,7 +27,13 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+        loggerConfiguration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("Application", "StockMgmt")
+            .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName));
 
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -63,8 +73,29 @@ try
     }
 
 
+    app.Use(async (context, next) =>
+    {
+        using (LogContext.PushProperty("RequestMethod", context.Request.Method))
+        using (LogContext.PushProperty("RequestPath", context.Request.Path.Value))
+        using (LogContext.PushProperty("TraceIdentifier", context.TraceIdentifier))
+        {
+            await next();
+        }
+    });
+
     app.UseHttpsRedirection();
-    app.UseSerilogRequestLogging();
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+        options.EnrichDiagnosticContext = (diagnostics, context) =>
+        {
+            diagnostics.Set("TraceIdentifier", context.TraceIdentifier);
+            diagnostics.Set("RequestHost", context.Request.Host.Value);
+            diagnostics.Set("RequestProtocol", context.Request.Protocol);
+            diagnostics.Set("ClientIp", context.Connection.RemoteIpAddress?.ToString());
+            diagnostics.Set("UserAgent", context.Request.Headers["User-Agent"].ToString());
+        };
+    });
     app.MapControllers();
 
     app.MapGet("/users", async (AppDbContext db) => await db.Users.ToListAsync());

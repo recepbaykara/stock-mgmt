@@ -56,10 +56,6 @@ publish/
 dist/
 build/
 
-# Entity Framework migrations
-Migrations/
-migrations/
-
 # Temporary files
 *.tmp
 *.temp

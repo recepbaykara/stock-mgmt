@@ -63,3 +63,10 @@ migrations/
 # Temporary files
 *.tmp
 *.temp
+
+# Backup files
+*.bak
+
+# Ubuntu specific
+*.swp
+*.deb

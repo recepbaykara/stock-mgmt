@@ -1,5 +1,9 @@
 name: Stock-Mgmt Pipeline
 
+premissions:
+  contents: read
+  packages: write
+
 on:
   push:
     branches:

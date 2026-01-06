@@ -42,20 +42,11 @@ try
                 .AddAspNetCoreInstrumentation(options =>
                 {
                     options.RecordException = true;
-                    options.Enrich = (activity, eventName, rawObject) =>
-                    {
-                        if (eventName == "OnException" && rawObject is Exception ex)
-                        {
-                            activity?.SetTag("exception.type", ex.GetType().Name);
-                            activity?.SetTag("exception.message", ex.Message);
-                        }
-                    };
                 })
                 .AddHttpClientInstrumentation()
                 .AddEntityFrameworkCoreInstrumentation(options =>
                 {
                     options.SetDbStatementForText = true;
-                    options.EnrichWithIQueryable = true;
                 })
                 .AddConsoleExporter()
                 .AddJaegerExporter(jaegerOptions =>

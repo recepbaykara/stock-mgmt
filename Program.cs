@@ -32,22 +32,23 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     // Configure OpenTelemetry
-    var otelResourceBuilder = ResourceBuilder.CreateDefault()
-        .AddService(serviceName: "StockMgmt", serviceVersion: "1.0.0")
-        .AddEnvironmentVariableDetector();
-
     builder.Services
         .AddOpenTelemetry()
-        .WithResources(otelResourceBuilder)
+        .ConfigureResource(resource => resource
+            .AddService(serviceName: "StockMgmt", serviceVersion: "1.0.0")
+            .AddEnvironmentVariableDetector())
         .WithTracing(tracing =>
             tracing
                 .AddAspNetCoreInstrumentation(options =>
                 {
                     options.RecordException = true;
-                    options.EnrichOnException = (activity, exception) =>
+                    options.Enrich = (activity, eventName, rawObject) =>
                     {
-                        activity?.SetTag("exception.type", exception.GetType().Name);
-                        activity?.SetTag("exception.message", exception.Message);
+                        if (eventName == "OnException" && rawObject is Exception ex)
+                        {
+                            activity?.SetTag("exception.type", ex.GetType().Name);
+                            activity?.SetTag("exception.message", ex.Message);
+                        }
                     };
                 })
                 .AddHttpClientInstrumentation()
@@ -67,15 +68,12 @@ try
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddConsoleExporter()
-                .AddProcessInstrumentation());
+                .AddConsoleExporter());
 
     builder.Logging.AddOpenTelemetry(loggerOptions =>
     {
         loggerOptions
-            .SetResourceBuilder(otelResourceBuilder)
-            .AddConsoleExporter()
-            .AddOtlpExporter();
+            .AddConsoleExporter();
     });
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>

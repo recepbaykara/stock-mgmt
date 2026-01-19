@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Minikube üzerinde Full Monitoring Stack kurulum scripti
-# Prometheus, Grafana, Loki, Jaeger, OpenTelemetry Collector
+# Prometheus, Grafana, Loki, Tempo, OpenTelemetry Collector
 
 set -e
 
@@ -88,12 +88,12 @@ else
     echo "✓ Loki Stack kuruldu"
 fi
 
-# 3. Jaeger + OpenTelemetry Collector manifest'leri uygula
+# 3. Tempo + OpenTelemetry Collector manifest'leri uygula
 echo ""
-echo "🔍 3/4 - Jaeger ve OpenTelemetry Collector kuruluyor..."
+echo "🔍 3/4 - Tempo ve OpenTelemetry Collector kuruluyor..."
 
 # Manifesto dosyalarının varlığını kontrol et
-MANIFESTS=("otel-configmap.yaml" "jaeger.yaml" "otel-collector.yaml")
+MANIFESTS=("otel-configmap.yaml" "tempo.yaml" "otel-collector.yaml")
 for manifest in "${MANIFESTS[@]}"; do
     if [ ! -f "k8s/$manifest" ]; then
         echo "❌ k8s/$manifest bulunamadı"
@@ -102,10 +102,15 @@ for manifest in "${MANIFESTS[@]}"; do
 done
 
 kubectl apply -f k8s/otel-configmap.yaml
-kubectl apply -f k8s/jaeger.yaml
+kubectl apply -f k8s/tempo.yaml
 kubectl apply -f k8s/otel-collector.yaml
 
-echo "✓ Jaeger ve OpenTelemetry Collector kuruldu"
+# (Opsiyonel) ServiceMonitor mevcutsa uygula
+if [ -f "k8s/otel-servicemonitor.yaml" ]; then
+    kubectl apply -f k8s/otel-servicemonitor.yaml
+fi
+
+echo "✓ Tempo ve OpenTelemetry Collector kuruldu"
 
 # 4. Uygulama (PostgreSQL + Stock-Mgmt) kurulumu
 echo ""
@@ -163,7 +168,8 @@ echo "📊 Grafana:                http://$MINIKUBE_IP:30080 (admin/admin)"
 echo "📊 Prometheus:             kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090"
 echo "🚨 Alertmanager:           kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-alertmanager 9093"
 echo "📝 Loki:                   kubectl port-forward -n monitoring svc/loki 3100"
-echo "🔍 Jaeger UI:              http://$MINIKUBE_IP:30686"
+echo "🔎 Tempo (Grafana datasouce): URL: http://tempo:3200 (cluster-içi)"
+echo "   Tempo Query (Jaeger UI): kubectl port-forward -n monitoring svc/tempo-query 16686:16686 → http://localhost:16686"
 echo "📝 Stock-Mgmt API:         http://$MINIKUBE_IP (LoadBalancer service)"
 echo "🔌 OTLP gRPC:              $MINIKUBE_IP:30317"
 echo "🔌 OTLP HTTP:              $MINIKUBE_IP:30318"
@@ -172,7 +178,7 @@ echo "💡 Kubernetes Dashboard:"
 echo "   minikube dashboard"
 echo ""
 echo "📖 Logs görüntüle:"
-echo "   kubectl logs -f deployment/jaeger -n monitoring"
+echo "   kubectl logs -f deployment/tempo -n monitoring"
 echo "   kubectl logs -f deployment/otel-collector -n monitoring"
 echo "   kubectl logs -f deployment/stock-mgmt -n default"
 echo "   kubectl logs -f statefulset/prometheus-monitoring-kube-prometheus-prometheus -n monitoring"
@@ -183,6 +189,8 @@ echo "   kubectl get svc -n default"
 echo ""
 echo "🔧 Grafana'da Loki Datasource Ekle:"
 echo "   URL: http://loki:3100"
+echo "🔧 Grafana'da Tempo Datasource Ekle:"
+echo "   URL: http://tempo:3200"
 echo ""
 echo "🧹 Temizlik için:"
 echo "   helm uninstall monitoring loki -n monitoring"

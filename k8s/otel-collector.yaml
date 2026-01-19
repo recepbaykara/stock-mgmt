@@ -24,8 +24,8 @@ spec:
             - name: http
               containerPort: 4318
               protocol: TCP
-            - name: jaeger-grpc
-              containerPort: 14250
+            - name: prometheus
+              containerPort: 8889
               protocol: TCP
           volumeMounts:
             - name: otel-config
@@ -71,13 +71,13 @@ spec:
       port: 4317
       targetPort: 4317
       protocol: TCP
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
+      protocol: TCP
     - name: http
       port: 4318
       targetPort: 4318
-      protocol: TCP
-    - name: jaeger-grpc
-      port: 14250
-      targetPort: 14250
       protocol: TCP
 
 ---

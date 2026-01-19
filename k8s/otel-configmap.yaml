@@ -21,22 +21,31 @@ data:
         check_interval: 1s
         limit_mib: 512
 
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
     exporters:
-      jaeger:
-        endpoint: jaeger:14250
+      otlp:
+        endpoint: tempo:4317
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8889
       debug:
         verbosity: detailed
 
     service:
+      extensions: [health_check]
       pipelines:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [jaeger, debug]
+          exporters: [otlp, debug]
         metrics:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [debug]
+          exporters: [prometheus, debug]
         logs:
           receivers: [otlp]
           processors: [memory_limiter, batch]

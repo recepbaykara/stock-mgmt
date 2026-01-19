@@ -14,18 +14,25 @@ processors:
     check_interval: 1s
     limit_mib: 512
 
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
 exporters:
-  jaeger:
-    endpoint: http://jaeger:14250
+  otlp:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
   logging:
     loglevel: debug
 
 service:
+  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [jaeger, logging]
+      exporters: [otlp, logging]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]

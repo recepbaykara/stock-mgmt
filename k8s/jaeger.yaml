@@ -21,6 +21,12 @@ spec:
             - name: ui
               containerPort: 16686
               protocol: TCP
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
             - name: grpc
               containerPort: 14250
               protocol: TCP
@@ -66,6 +72,14 @@ spec:
     - name: ui
       port: 16686
       targetPort: 16686
+      protocol: TCP
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
       protocol: TCP
     - name: grpc
       port: 14250

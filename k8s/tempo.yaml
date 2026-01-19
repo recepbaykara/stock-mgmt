@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: monitoring
+  labels:
+    app: tempo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      containers:
+        - name: tempo
+          image: grafana/tempo:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-config.file=/etc/tempo/tempo.yaml"
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+            - name: http
+              containerPort: 3200
+          volumeMounts:
+            - name: tempo-config
+              mountPath: /etc/tempo
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: tempo-config
+          configMap:
+            name: tempo-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: monitoring
+  labels:
+    app: tempo
+spec:
+  type: ClusterIP
+  selector:
+    app: tempo
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+    - name: http
+      port: 3200
+      targetPort: 3200
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+  namespace: monitoring
+  labels:
+    app: tempo
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+      log_level: info
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            http:
+              endpoint: 0.0.0.0:4318
+            grpc:
+              endpoint: 0.0.0.0:4317
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /tmp/tempo/traces
+    querier:
+      frontend_worker:
+        frontend_address: 127.0.0.1:9095
+    query_frontend:
+      max_outstanding_per_tenant: 100
+      # Default search settings; removing invalid field
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo-query
+  namespace: monitoring
+  labels:
+    app: tempo-query
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo-query
+  template:
+    metadata:
+      labels:
+        app: tempo-query
+    spec:
+      containers:
+        - name: tempo-query
+          image: grafana/tempo-query:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BACKEND
+              value: tempo.monitoring:3200
+          ports:
+            - name: http
+              containerPort: 16686
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo-query
+  namespace: monitoring
+  labels:
+    app: tempo-query
+spec:
+  type: ClusterIP
+  selector:
+    app: tempo-query
+  ports:
+    - name: http
+      port: 16686
+      targetPort: 16686

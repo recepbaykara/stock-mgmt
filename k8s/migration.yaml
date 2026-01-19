@@ -10,7 +10,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: ghcr.io/recepbaykara/stock-mgmt:sha-121789efdfc16f204ea32befca1443e65194ba8c
+          image: ghcr.io/recepbaykara/stock-mgmt:sha-4de088123a5f937d8cc4fdfe285d798066de928c
           command: ["/bin/sh", "-c"]
           args:
             - |

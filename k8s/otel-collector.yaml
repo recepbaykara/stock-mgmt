@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: otel-collector
-  namespace: monitoring
+  namespace: observability
 spec:
   replicas: 1
   selector:
@@ -61,7 +61,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: otel-collector
-  namespace: monitoring
+  namespace: observability
 spec:
   type: ClusterIP
   selector:
@@ -85,7 +85,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: otel-collector-external
-  namespace: monitoring
+  namespace: observability
 spec:
   type: NodePort
   selector:

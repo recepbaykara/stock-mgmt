@@ -2,10 +2,10 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: otel-collector
-  namespace: monitoring
+  namespace: observability
   labels:
     app: otel-collector
-    release: monitoring
+    release: observability
 spec:
   selector:
     matchLabels:

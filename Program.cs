@@ -32,7 +32,7 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
-        ?? "http://otel-collector.monitoring:4317";
+        ?? "http://otel-collector.observability:4317";
 
     builder.Services.AddOpenTelemetry()
         .ConfigureResource(res => res
@@ -130,7 +130,8 @@ try
         }
     });
 
-    app.UseHttpsRedirection();
+    // UseHttpsRedirection removed for Kubernetes compatibility
+    
     app.UseSerilogRequestLogging(options =>
     {
         options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";

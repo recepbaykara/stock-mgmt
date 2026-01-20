@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tempo
-  namespace: monitoring
+  namespace: observability
   labels:
     app: tempo
 spec:
@@ -47,7 +47,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: tempo
-  namespace: monitoring
+  namespace: observability
   labels:
     app: tempo
 spec:
@@ -69,7 +69,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tempo-config
-  namespace: monitoring
+  namespace: observability
   labels:
     app: tempo
 data:
@@ -101,7 +101,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tempo-query
-  namespace: monitoring
+  namespace: observability
   labels:
     app: tempo-query
 spec:
@@ -120,7 +120,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: BACKEND
-              value: tempo.monitoring:3200
+              value: tempo.observability:3200
           ports:
             - name: http
               containerPort: 16686
@@ -136,7 +136,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: tempo-query
-  namespace: monitoring
+  namespace: observability
   labels:
     app: tempo-query
 spec:

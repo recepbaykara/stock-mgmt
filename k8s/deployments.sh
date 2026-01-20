@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Minikube üzerinde Full Monitoring Stack kurulum scripti
+# Minikube üzerinde Full observability Stack kurulum scripti
 # Prometheus, Grafana, Loki, Tempo, OpenTelemetry Collector
 
 set -e
 
-echo "🚀 Minikube Full Monitoring Stack Kurulumu"
+echo "🚀 Minikube Full observability Stack Kurulumu"
 echo "==========================================="
 
 # Minikube kontrolü
@@ -42,10 +42,20 @@ fi
 
 echo "✓ kubectl hazır"
 
-# Monitoring namespace oluştur
+# observability namespace oluştur
 echo ""
-echo "📦 Monitoring namespace oluşturuluyor..."
-kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+echo "📦 observability namespace oluşturuluyor..."
+kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+
+# database namespace oluştur
+echo ""
+echo "📦 database namespace oluşturuluyor..."
+kubectl create namespace database --dry-run=client -o yaml | kubectl apply -f -
+
+# app namespace oluştur
+echo ""
+echo "📦 app namespace oluşturuluyor..."
+kubectl create namespace app --dry-run=client -o yaml | kubectl apply -f -
 
 # Helm repositories ekle
 echo ""
@@ -59,11 +69,11 @@ echo "✓ Helm repositories güncellendi"
 # 1. Kube-Prometheus-Stack (Prometheus + Grafana + Alertmanager) kurulumu
 echo ""
 echo "📊 1/4 - Prometheus Stack kuruluyor..."
-if helm list -n monitoring | grep -q "monitoring"; then
+if helm list -n observability | grep -q "observability"; then
     echo "   → Prometheus Stack zaten kurulu, atlanıyor..."
 else
-    helm install monitoring prometheus-community/kube-prometheus-stack \
-        --namespace monitoring \
+    helm install observability prometheus-community/kube-prometheus-stack \
+        --namespace observability \
         --set prometheus.prometheusSpec.retention=7d \
         --set prometheus.prometheusSpec.resources.requests.memory=512Mi \
         --set grafana.enabled=true \
@@ -77,11 +87,11 @@ fi
 # 2. Loki Stack (Loki + Promtail) kurulumu
 echo ""
 echo "📝 2/4 - Loki Stack kuruluyor..."
-if helm list -n monitoring | grep -q "loki"; then
+if helm list -n observability | grep -q "loki"; then
     echo "   → Loki Stack zaten kurulu, atlanıyor..."
 else
     helm install loki grafana/loki-stack \
-        --namespace monitoring \
+        --namespace observability \
         --set loki.persistence.enabled=false \
         --set promtail.enabled=true \
         --wait --timeout 5m
@@ -112,12 +122,42 @@ fi
 
 echo "✓ Tempo ve OpenTelemetry Collector kuruldu"
 
-# 4. Uygulama (PostgreSQL + Stock-Mgmt) kurulumu
+# 4. PostgreSQL kurulumu (database namespace)
 echo ""
-echo "🚀 4/4 - Stock-Mgmt uygulaması kuruluyor..."
+echo "🗄️  4/5 - PostgreSQL kuruluyor (database namespace)..."
 
 # Manifesto dosyalarının varlığını kontrol et
-APP_MANIFESTS=("postgres.yaml" "deployment.yaml")
+DB_MANIFESTS=("pv.yaml" "pvc.yaml" "postgres.yaml")
+for manifest in "${DB_MANIFESTS[@]}"; do
+    if [ ! -f "k8s/$manifest" ]; then
+        echo "❌ k8s/$manifest bulunamadı"
+        exit 1
+    fi
+done
+
+kubectl apply -f k8s/pv.yaml -n database
+kubectl apply -f k8s/pvc.yaml -n database
+kubectl apply -f k8s/postgres.yaml -n database
+
+echo "✓ PostgreSQL kuruldu"
+
+# Migration varsa uygula (database namespace)
+if [ -f "k8s/migration.yaml" ]; then
+    echo ""
+    echo "📦 Migration job kuruluyor (database namespace)..."
+    echo "   → Eski migration job'u temizleniyor..."
+    kubectl delete job stock-mgmt-migration -n database --ignore-not-found
+    kubectl apply -f k8s/migration.yaml -n database
+    echo "   → Migration job uygulandı"
+    sleep 5
+fi
+
+# 5. Stock-Mgmt uygulaması kurulumu (app namespace)
+echo ""
+echo "🚀 5/5 - Stock-Mgmt uygulaması kuruluyor (app namespace)..."
+
+# Manifesto dosyalarının varlığını kontrol et
+APP_MANIFESTS=("deployment.yaml")
 for manifest in "${APP_MANIFESTS[@]}"; do
     if [ ! -f "k8s/$manifest" ]; then
         echo "❌ k8s/$manifest bulunamadı"
@@ -125,18 +165,7 @@ for manifest in "${APP_MANIFESTS[@]}"; do
     fi
 done
 
-kubectl apply -f k8s/postgres.yaml
-
-# Migration varsa uygula
-if [ -f "k8s/migration.yaml" ]; then
-    echo "   → Eski migration job'u temizleniyor..."
-    kubectl delete job stock-mgmt-migration -n default --ignore-not-found
-    kubectl apply -f k8s/migration.yaml
-    echo "   → Migration job uygulandı"
-    sleep 5
-fi
-
-kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/deployment.yaml -n app
 
 echo "✓ Uygulama kuruldu"
 
@@ -149,8 +178,28 @@ sleep 60
 echo ""
 echo "📊 Pod Durumu:"
 echo ""
-echo "=== Monitoring Namespace ==="
-kubectl get pods -n monitoring
+echo "=== observability Namespace ==="
+kubectl get pods -n observability
+echo ""
+echo "=== database Namespace ==="
+kubectl get pods -n database
+echo ""
+echo "=== app Namespace ==="
+kubectl get pods -n appment.yaml -n app
+
+echo "✓ Uygulama kuruldu"
+
+# Pod'ların hazır olmasını bekle
+echo ""
+echo "⏳ Pod'ların başlaması bekleniyor (60 saniye)..."
+sleep 60
+
+# Pod durumunu kontrol et
+echo ""
+echo "📊 Pod Durumu:"
+echo ""
+echo "=== observability Namespace ==="
+kubectl get pods -n observability
 echo ""
 echo "=== Default Namespace ==="
 kubectl get pods -n default
@@ -165,11 +214,11 @@ echo "🌐 Erişim Adresleri:"
 echo "==================="
 echo ""
 echo "📊 Grafana:                http://$MINIKUBE_IP:30080 (admin/admin)"
-echo "📊 Prometheus:             kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090"
-echo "🚨 Alertmanager:           kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-alertmanager 9093"
-echo "📝 Loki:                   kubectl port-forward -n monitoring svc/loki 3100"
+echo "📊 Prometheus:             kubectl port-forward -n observability svc/observability-kube-prometheus-prometheus 9090"
+echo "🚨 Alertmanager:           kubectl port-forward -n observability svc/observability-kube-prometheus-alertmanager 9093"
+echo "📝 Loki:                   kubectl port-forward -n observability svc/loki 3100"
 echo "🔎 Tempo (Grafana datasouce): URL: http://tempo:3200 (cluster-içi)"
-echo "   Tempo Query (Jaeger UI): kubectl port-forward -n monitoring svc/tempo-query 16686:16686 → http://localhost:16686"
+echo "   Tempo Query (Jaeger UI): kubectl port-forward -n observability svc/tempo-query 16686:16686 → http://localhost:16686"
 echo "📝 Stock-Mgmt API:         http://$MINIKUBE_IP (LoadBalancer service)"
 echo "🔌 OTLP gRPC:              $MINIKUBE_IP:30317"
 echo "🔌 OTLP HTTP:              $MINIKUBE_IP:30318"
@@ -177,22 +226,23 @@ echo ""
 echo "💡 Kubernetes Dashboard:"
 echo "   minikube dashboard"
 echo ""
-echo "📖 Logs görüntüle:"
-echo "   kubectl logs -f deployment/tempo -n monitoring"
-echo "   kubectl logs -f deployment/otel-collector -n monitoring"
-echo "   kubectl logs -f deployment/stock-mgmt -n default"
-echo "   kubectl logs -f statefulset/prometheus-monitoring-kube-prometheus-prometheus -n monitoring"
+echo "📖 Logs görüntüle:"app"
+echo "   kubectl logs -f deployment/postgres -n database"
+echo "   kubectl logs -f statefulset/prometheus-observability-kube-prometheus-prometheus -n observability"
 echo ""
 echo "📊 Service'leri kontrol et:"
-echo "   kubectl get svc -n monitoring"
+echo "   kubectl get svc -n observability"
+echo "   kubectl get svc -n database"
+echo "   kubectl get svc -n app
+echo "📊 Service'leri kontrol et:"
+echo "   kubectl get svc -n observability"
 echo "   kubectl get svc -n default"
 echo ""
 echo "🔧 Grafana'da Loki Datasource Ekle:"
 echo "   URL: http://loki:3100"
-echo "🔧 Grafana'da Tempo Datasource Ekle:"
-echo "   URL: http://tempo:3200"
+echo "🔧 Grafana'da Tempo Datasource Ekle:" database app
 echo ""
 echo "🧹 Temizlik için:"
-echo "   helm uninstall monitoring loki -n monitoring"
-echo "   kubectl delete namespace monitoring"
+echo "   helm uninstall observability loki -n observability"
+echo "   kubectl delete namespace observability"
 echo "   kubectl delete deployment,service,configmap,pvc --all -n default"
